@@ -21,7 +21,7 @@ def mergeDict(dictionaries):
 def isSelfCloser(to_match):
   res = False
   for o in self_closer:
-    if to_match == o[0]:
+    if to_match == o[0] or to_match == o[1]:
       res = True
   return res
 
@@ -139,11 +139,6 @@ def parseAttributes(tags):
 
 
 
-def mapHTMLString(input):
-    tags = identifyTags(input)
-    tags = matchTags(tags)
-    tags = getInnerContents(tags, input)
-    return parseAttributes(tags)
 
 def createSequence(sorted_tags):
   sequence = []
@@ -163,7 +158,6 @@ def seqIdtoDict(id):
 
 
 def matchTags(tags_collected):
-  
   tags = sortTags(tags_collected)
   updated_tags = []
   to_remove = []

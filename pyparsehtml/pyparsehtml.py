@@ -29,11 +29,13 @@ class HTMLParser:
     #watch out what happens after overwrites like content of an element
     # thus, find a way to constantly update the list of elements 
 
-    def getElementById(self, id):
-        #maybe lift id/class to upper nesting
-        #on the other hand, I know where to look for
-        #also how to represent the element when found? Full string and dictionary
-        pass
+    def getElementById(self, id, asString=False):
+        element = helpers.getElement_byId(id, self.elements)
+        if asString:
+            return helpers.representElementAsString(element)
+        else: 
+            return element
+
     def getElementsByTag(self, tag):
         pass
     def getElementsByClass(self, className):
@@ -65,7 +67,8 @@ class HTMLParser:
     def saveAsHTML(self):
         pass
 
-teststring = '<div class="testdivone">Hello<div class="testdivtwo">What up?</div><div class="testdiv">S</div><img class="testimage"/><div style="color: green; width: 20px; height: 50cm;" /></div>'
+teststring = '<div id="testID" class="testdivone">Hello<div class="testdivtwo">What up?</div><div class="testdiv">S</div><img class="testimage"/><div style="color: green; width: 20px; height: 50cm;" /></div>'
 
 test = HTMLParser(teststring)
-print(test.getParsedHtml('tags'))
+byId = test.getElementById("testID", asString=False)
+print(byId)
