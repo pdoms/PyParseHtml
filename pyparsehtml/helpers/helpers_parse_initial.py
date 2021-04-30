@@ -219,9 +219,23 @@ def matchTags(tags_collected):
   return (seq, updated_tags)
 
 
+# lifts style, id, class attributes to top level
+
+def liftAttributes(tags):
+  rel_attr = ['id', 'style', 'class']
+  for tag in tags:
+    for att in rel_attr:
+      tag[att] = tag['allowed_attributes'][att]
+      tag['allowed_attributes'].pop(att)
+  return tags
+
+
+
+
 
 def mapHTMLString(input):
   tags = identifyTags(input)
   (seq, tags) = matchTags(tags)
   tags = getInnerContents(tags, input)
-  return (seq, parseAttributes(tags))
+  tags = parseAttributes(tags)
+  return (seq, liftAttributes(tags))

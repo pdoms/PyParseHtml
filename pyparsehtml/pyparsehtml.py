@@ -31,16 +31,36 @@ class HTMLParser:
 
     def getElementById(self, id, asString=False):
         element = helpers.getElement_byId(id, self.elements)
+        if element == None:
+            return None
         if asString:
             return helpers.representElementAsString(element)
         else: 
             return element
 
-    def getElementsByTag(self, tag):
-        pass
-    def getElementsByClass(self, className):
-        #maybe lift id/class to upper nesting
-        pass
+    def getElementsByTag(self, tag, asString=False):
+        elements = helpers.getElements_byTag(tag, self.elements)
+        asStrings = []  
+        if elements == []:
+            return []      
+        if asString:
+            for element in elements:
+                asStrings.append(helpers.representElementAsString(element))
+            return asStrings
+        else: 
+            return elements
+
+    def getElementsByClass(self, className, asString=False):
+        elements = helpers.getElements_byClass(className, self.elements)
+        asStrings = []
+        if elements == []:
+            return []
+        if asString: 
+            for element in elements:
+                asStrings.append(helpers.representElementAsString(element))
+            return asStrings
+        else:
+            return elements
     
     def createElement(self, type):
         pass
@@ -53,6 +73,9 @@ class HTMLParser:
     
     def insertElementAt(self, element):
         #at what?
+        pass
+
+    def cloneElement(self, element):
         pass
 
     def removeElement(self, element):
@@ -70,5 +93,7 @@ class HTMLParser:
 teststring = '<div id="testID" class="testdivone">Hello<div class="testdivtwo">What up?</div><div class="testdiv">S</div><img class="testimage"/><div style="color: green; width: 20px; height: 50cm;" /></div>'
 
 test = HTMLParser(teststring)
-byId = test.getElementById("testID", asString=False)
+byId = test.getElementsByTag("input", asString=True)
 print(byId)
+
+
