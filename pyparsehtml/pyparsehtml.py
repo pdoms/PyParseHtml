@@ -1,25 +1,26 @@
-import helpers
+from src import parse_doc_string, getters
+from src.element import Element
 
-class HTMLParser:
+class HtmlParser:
     def __init__(self, htmlstring):
         self.htmlstring = htmlstring
-        (self.sequence, self.elements) = helpers.mapHTMLString(self.htmlstring)
-        
-    def __repr__(self):
-        return str(self.elements)
+        (self.sequence, self.elements) = parse_doc_string.mapHTMLString(self.htmlstring)
+  
+    
+    def document(self):
+        pass
 
-    ## returns all elements found in the initial string or in the current
-    ## state of the document 
-    def getParsedHtml(self, rep):
-        #don't forget to handle the updates when it's time
-        (seq, ele) = helpers.mapHTMLString(self.htmlstring)
-        self.elements = ele
-        self.sequence = seq
-        if rep == 'tags':
-            return self.elements
-        else: 
-            return self.sequence
+    def DOM(self):
+        elementlist = []
+        for element in self.elements:
+             elementlist.append(vars(element))
+        return elementlist
+    
+    def getElementById(self, id): 
+        return getters.getBy_Element(id, self.elements)
+    
 
+"""
 
 
 
@@ -29,7 +30,7 @@ class HTMLParser:
     #watch out what happens after overwrites like content of an element
     # thus, find a way to constantly update the list of elements 
 
-    def getElementById(self, id, asString=False):
+ def getElementById(self, id, asString=False):
         element = helpers.getElement_byId(id, self.elements)
         if element == None:
             return None
@@ -37,6 +38,9 @@ class HTMLParser:
             return helpers.representElementAsString(element)
         else: 
             return element
+
+
+
 
     def getElementsByTag(self, tag, asString=False):
         elements = helpers.getElements_byTag(tag, self.elements)
@@ -50,6 +54,9 @@ class HTMLParser:
         else: 
             return elements
 
+
+
+
     def getElementsByClass(self, className, asString=False):
         elements = helpers.getElements_byClass(className, self.elements)
         asStrings = []
@@ -62,8 +69,11 @@ class HTMLParser:
         else:
             return elements
     
+
     def createElement(self, type):
-        pass
+        return helpers.create_Element(type)
+
+
 
     def appendChild(self, child):
         #to do this, I need to set up a way 
@@ -76,7 +86,7 @@ class HTMLParser:
         pass
 
     def cloneElement(self, element):
-        pass
+        return helpers.clone_Element( element)
 
     def removeElement(self, element):
         pass
@@ -89,11 +99,25 @@ class HTMLParser:
         pass
     def saveAsHTML(self):
         pass
+ """
+teststring = '<div id="testID" class="testdivone">Hello<div class="testdivtwo">What <div id="childdiv">IS ACTUALLY</div> up?</div><div class="testdiv">S</div><img class="testimage"/><div style="color: green; width: 20px; height: 50cm;" /></div>'
 
-teststring = '<div id="testID" class="testdivone">Hello<div class="testdivtwo">What up?</div><div class="testdiv">S</div><img class="testimage"/><div style="color: green; width: 20px; height: 50cm;" /></div>'
+test = HtmlParser(teststring)
 
-test = HTMLParser(teststring)
-byId = test.getElementsByTag("input", asString=True)
-print(byId)
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
 
 

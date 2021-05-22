@@ -1,5 +1,48 @@
-from .helpers_parse_initial import mergeDict, html_tags_incl_attributes, global_attributes, isSelfCloser, css_properties, html_tags_stripped
+
+from .html_data import html_tags_incl_attributes, global_attributes, css_properties, self_closer
 import copy
+
+
+def seqIdtoDict(id):
+  return {
+      'seq_tag_type': id[id.index('_')+1:],
+      'seq_unique': id[:id.index('-')],
+      'seq_tag_role': id[id.index('-')+1: id.index('_')] 
+  }
+
+
+
+
+def printElement(element):
+    if element.tag_role == 'open_close' or element.tag_role == 'open_close_alt':
+        return element.with_attributes
+    return f"{element.with_attributes}{element.innerHTML}</{element.closer['tag_type']}>"
+
+
+            
+
+        
+ 
+
+def representElementAsString(tag):
+    if tag['tag_role'] == 'open_close' or tag['tag_role'] == 'open_close_alt':
+        return tag['with_attributes']
+    else: 
+        return f"{tag['with_attributes']}{tag['innerHTML']}</{tag['closer']['tag_type']}>"
+
+def mergeDict(dictionaries):
+  base = dictionaries[0]
+  for d in range(1, len(dictionaries)):
+    base.update(dictionaries[d])
+  return base
+
+def isSelfCloser(to_match):
+  res = False
+  for o in self_closer:
+    if to_match == o[0] or to_match == o[1]:
+      res = True
+  return res
+
 
 def createBasics(type, isCloser=False):
     element = {}
@@ -41,36 +84,4 @@ def appendStyleProperties():
     for prop in css_properties:
         properties[prop] = ""
     return properties
-    
-def create_Element(type):
-    if type not in html_tags_stripped:
-        return None
-    element = createBasics(type)
-    element['style'] = appendStyleProperties()
-    if isSelfCloser(type):
-        element['tag_role'] = 'open_close'
-        element['as_tag_identifier'] = f"<{type} />"
-        element['with_attributes'] = element['as_tag_identifier']
-    else:
-        element['tag_role'] = 'open'
-        element['as_tag_identifier'] = f"<{type}>"
-        element['closer'] = createBasics(type, True)
-        element['with_attributes'] = element['as_tag_identifier']
-        #create closer
-    globals = appendGlobalAttributes()
-    specific = appendSpecificAttributes(type)
-    element['allowed_attributes'] = mergeDict([globals, specific])
-    return element
-
-
-def clone_Element(element):
-    #what to do with inner contents and sequence?
-    clone = copy.deepcopy(element)
-    clone['seq_id'] = ""
-    return clone
-
-
-
-
-
 

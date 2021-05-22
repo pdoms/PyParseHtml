@@ -1,6 +1,7 @@
 import unittest
 import helpers_parse_initial as helpers
 import helpers_getters as getters
+import helpers_create_clone as clone
 
 
 
@@ -10,6 +11,7 @@ has_closing_input_2 = [{'tag_role': 'open'}, {'tag_role': 'open'}, {'tag_role': 
 elements_forId = [{'id': '1'}, {'id': '2'}, {'id': '3'}]
 elements_forTag = [{'tag_type': 'div'}, {'tag_type': 'img'}, {'tag_type': 'div'}]
 elements_forClass = [{'class': 'class1'}, {'class': 'class2'}, {'class': 'class2'}]
+element_forClone = {'id': '1', 'seq_id': "seqid"}
 
 test_input_string = '<div id="test1" style="text-align:left;" >Hello</div><img src="example.com" />'
 
@@ -99,6 +101,10 @@ class TestHelpers_parse_initial(unittest.TestCase):
         result = getters.getElements_byClass('class4', elements_forClass)
         self.assertEqual(result, [])
     
+    def test_cloneElement(self):
+        """test if clone doesn't change original"""
+        res = clone.clone_Element(element_forClone)
+        self.assertEqual(res, {'id': '1', 'seq_id': ""})
 
  
 if __name__ == '__main__':
