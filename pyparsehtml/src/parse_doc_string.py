@@ -1,8 +1,8 @@
 import re
 import copy
-from typing import Sequence
+
 from .element import Element
-from .utils import isSelfCloser, mergeDict, representElementAsString, seqIdtoDict
+from .utils import isSelfCloser, mergeDict, representElementAsString, seqIdtoDict, getTagBySeqId
 from .html_data import global_attributes, css_properties, html_tags_incl_attributes, html_tags_stripped
 
 def addGlobalAttributes():
@@ -32,6 +32,7 @@ def getInnerContents(tags_up, input):
       continue
     else:
       t['innerHTML'] = input[t['end_idx']+1:t['closer']['start_idx']]
+      
       t['outerHTML'] = input[t['start_idx']:t['closer']['end_idx']]
   return tags_up
 
@@ -68,7 +69,8 @@ def identifyTags(input):
           meta_tag['tag_role'] = 'open'
       specific = addSpecificAttributes(meta_tag)
       globals = addGlobalAttributes()
-      meta_tag['allowed_attributes'] = mergeDict([globals, specific])  
+      meta_tag['allowed_attributes'] = mergeDict([globals, specific])
+      meta_tag['rest_string'] = input[meta_tag['end_idx'] + 1:]  
       current_idx = meta_tag['end_idx']
       collected_tags.append(meta_tag)
     ##handle closers
@@ -81,6 +83,7 @@ def identifyTags(input):
       meta_tag['start_idx'] = input.index(c, current_idx)
       meta_tag['end_idx'] = input.index('>', meta_tag['start_idx'])
       meta_tag['with_attributes'] = ""
+      meta_tag['rest_string'] = input[meta_tag['end_idx'] + 1:]  
       collected_tags.append(meta_tag) 
       current_idx = meta_tag['end_idx'] +1
   return collected_tags
@@ -128,20 +131,15 @@ def createSequence(sorted_tags):
 
 
 
-
-
-
-def matchTags(tags_collected):
+def matchTokens(tags_collected):
   tags = sortTags(tags_collected)
-  updated_tags = []
-  to_remove = []
-  #sequence id = count-role_id_tagtype
-  #count is unique in sequence for pair or self-closing
-  #role_ids: 1 = open, 2 = close (needs to have same count), 3 = self-closing
   (seq, tags) = createSequence(tags)
-  #fish out all self-closing tags
-
+  updated_tags = [] 
+  to_remove = []
+  no_of_open = 0
   for t in tags:
+    if t['tag_role'] == 'open':
+      no_of_open += 1
     if t['tag_role'] == 'open_close':
       s = t['seq_id']
       t['seq_id'] = s.replace('$$', "3")
@@ -158,40 +156,34 @@ def matchTags(tags_collected):
       to_remove.append(t)
   for item in to_remove:
     tags.remove(item)
+  #count open tags?
   current_length = len(tags)
-  # even though a while loop could work, it's lagging behind whith the remove statements and slips into an infinite loop
-  for _ in range(0, current_length):
-    current_length = len(tags)
+  while no_of_open > 0:
     for i in reversed(range(0, current_length)):
-      if i <= 1:
+      open = {}
+      close = {}
+      if tags[i]['tag_role'] == 'open':
+        open = tags[i]
+        open_s = tags[i]['seq_id']
+        open['seq_id'] = open['seq_id'].replace('$$', "1")
+        seq[seq.index(open_s)] = open['seq_id']
+        open_seq = seqIdtoDict(open['seq_id'])
+        for f in range(i, len(tags)):
+          if tags[f]['tag_role'] == 'close':
+            close = tags[f]
+            close_s = tags[f]['seq_id']
+            close['seq_id'] = f"{open_seq['seq_unique']}-2_{open_seq['seq_tag_type']}"
+            seq[seq.index(close_s)] = close['seq_id']
+            break
+        # wrong - needs to be a copy of the unfinished seq ID
+        open['closer'] = close
+        updated_tags.append(open)
+        tags.remove(open)
+        tags.remove(close)
         break
-      if tags[i]['tag_role'] == 'close' and tags[i-1]['tag_role'] == 'open':
-        s = tags[i-1]['seq_id']
-        s_close = tags[i]['seq_id']
-        item_open = tags[i-1]
-        item_open['seq_id'] = s.replace('$$', "1")
-        seqIdAsDict = seqIdtoDict(item_open['seq_id'])
-        item_close = tags[i]
-        item_close['seq_id'] = f"{seqIdAsDict['seq_unique']}-2_{seqIdAsDict['seq_tag_type']}"
-        seq[seq.index(s)] = item_open['seq_id']
-        seq[seq.index(s_close)] = item_close['seq_id']
-        item_open['closer'] = item_close
-        updated_tags.append(item_open)
-        tags.remove(item_open)
-        tags.remove(item_close)
-  # finish the last tags (what if the first tag is self-closing?)
-  if len(tags) == 2:
-    s = tags[0]['seq_id']
-    s_close = tags[1]['seq_id']
-    tags[0]['seq_id'] = s.replace('$$', "1")
-    seq[seq.index(s)] = tags[0]['seq_id']    
-    seqIdAsDict = seqIdtoDict(tags[0]['seq_id'])
-    tags[1]['seq_id'] = f"{seqIdAsDict['seq_unique']}-2_{seqIdAsDict['seq_tag_type']}"
-    seq[seq.index(s_close)] = tags[1]['seq_id']
-    tags[0]['closer'] = tags[1]
-    updated_tags.append(tags[0])
-  return (seq, updated_tags)
-
+    current_length = len(tags)
+    no_of_open -= 1
+  return (seq, updated_tags)   
 
 # lifts style, id, class attributes to top level
 
@@ -203,128 +195,66 @@ def liftAttributes(tags):
       tag['allowed_attributes'].pop(att)
   return tags
 
-
-def createChildrenReferences(seq, tags):
-    for el in tags: 
-        el["childrenRef"] = []
-        el['children'] = []
-        el['descendants'] = []
-        el['text'] = ""
-        el['isLastChild'] = False
-    processed = []
-    for no, s in enumerate(seq):
-        in_process = []
-        current = seqIdtoDict(s)
-        for t in tags:
-            look_for = ""
-            if s == t['seq_id']:
-                in_process.append(s)
-                in_process.append(no)
-                look_for = current['seq_unique']
-                for i in range(no+1, len(seq)):
-                    if seq[i].startswith(look_for):
-                        in_process.append(i)
-        processed.append(in_process)
-    
-    for p in processed:
-        if len(p) <= 2:
-            continue 
-        for tag in tags: 
-            if  tag['seq_id'] == p[0]:
-                tag['childrenRef'] = seq[p[1]+1:p[2]]
-                tag['isLastChild'] = isLastChild(tag['childrenRef'])
-                if tag['isLastChild']:
-                  tag['descendants'] = ""
-                else:
-                  tag['descendants'] = refToDescendants(tag, tags)
-                tag['text'] = getText(tag)
-                print('INNERHTML:',  tag['innerHTML'])
-    
-    return tags
-
-def refToDescendants(tag, tags):
-    children = []
-    for ref in tag['childrenRef']:
-        ref_split = seqIdtoDict(ref)
-        id = ref_split['seq_tag_role']
-        if id != "2":
-            for t in tags:
-                if t['seq_id'] == ref:
-                    children.append(representElementAsString(t))
-    kids = eliminateInDirects(children)
-    return kids
-
-def eliminateInDirects(ch):
-  toRemove = []
-  for c in ch:
-    for h in ch:
-      if h == c:
-        continue
-      if h in c:
-        toRemove.append(h)
-  for removee in toRemove:
-    ch.remove(removee)
+def getText(seq_id, next_tag, tags):
   
-  return ch
+  element = getTagBySeqId(tags, seq_id['seq_id'])
 
-
-
-def isLastChild(ref):
-  return ref == []
-
-
-
-
-
-
-
+  text_after = element['rest_string']
+  idx = -1
+  next = next_tag['seq_tag_type']
+  if next_tag['seq_tag_role'] == '2':
+    idx = text_after.find(f'</{next}')
+  else:
+    idx = text_after.find(f'<{next}')
+  if idx == -1:
+    return ''
+  else:
+    return '$_text_$_' + text_after[0:idx]
   
 
 
+def handleTexts(sqs, tgs):
+  items = []
+  for s in range(0, len(sqs) - 1):
+    item = {}
+    seq_current = seqIdtoDict(sqs[s])
+    seq_next = seqIdtoDict(sqs[s+1])
+    item['after'] = sqs[s]
+    item['text'] = getText(seq_current, seq_next, tgs)
+    items.append(item)
+  for i in items:
+    if i['text'] != '$_text_$':
+      idx = sqs.index(i['after'])
+      sqs.insert(idx+1, i['text'])
+  return sqs
 
 
-def getText(tag):
-  inner = tag['innerHTML']
-  for child in tag['children']:
-      inner = inner.replace(child, "")
-  return inner
-
-
-
-
-
-
+#find a way to represent dom as dictionary with levels of nesting (irrelevant of text, just to have it ready)
+#e.g: 
+#body: {
+#   div: {
+#     text: ...
+#     p: {},
+#     p: {},
+#     p: {
+#       img: {}
+#       } 
+#     }
+#   div: {}
+# }
+#
+#
+#
+#
 
     
-
-                            
-
-                    
-        
-
-
-
-        
-
-
-
-
-
-  
-
-
-
-
-
-
 def mapHTMLString(input):
   tags = identifyTags(input)
-  (seq, tags) = matchTags(tags)
-  
+  (seq, tags) = matchTokens(tags)
   tags = getInnerContents(tags, input)
   tags = parseAttributes(tags)
   tags = liftAttributes(tags)
-  createChildrenReferences(seq, tags)
+  seq = handleTexts(seq, tags)
   tags_asClass = []
   for e in tags:
     element = Element(e)

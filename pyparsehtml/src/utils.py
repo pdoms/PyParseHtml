@@ -5,6 +5,7 @@ import copy
 
 def seqIdtoDict(id):
   return {
+      'seq_id': id,
       'seq_tag_type': id[id.index('_')+1:],
       'seq_unique': id[:id.index('-')],
       'seq_tag_role': id[id.index('-')+1: id.index('_')] 
@@ -84,4 +85,22 @@ def appendStyleProperties():
     for prop in css_properties:
         properties[prop] = ""
     return properties
+
+def getTagBySeqId(tags, seq_id):
+    s = seqIdtoDict(seq_id)
+    if s['seq_tag_role'] == '1' or s['seq_tag_role'] == '3':
+        for t in tags:
+            if s['seq_id'] == t['seq_id']:
+                return t
+    else:
+        for t in tags: 
+            if 'closer' in t:
+                if s['seq_id'] == t['closer']['seq_id']:
+                    return t['closer']
+
+
+
+
+    
+
 

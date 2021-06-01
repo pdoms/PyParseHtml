@@ -100,7 +100,7 @@ class HtmlParser:
     def saveAsHTML(self):
         pass
  """
-teststring = '<div id="testID" class="testdivone">Hello<div class="testdivtwo">What <div id="childdiv">IS ACTUALLY</div> up?</div><div class="testdiv">S</div><img class="testimage"/><div style="color: green; width: 20px; height: 50cm;" /></div>'
+teststring = '<div id="testID" class="testdivone">Hello<div class="testdivtwo">What  <div id="childdiv">IS ACTUALLY</div>     up?</div>     <div class="testdiv">S</div><img class="testimage"/><div style="color: green; width: 20px; height: 50cm;" /></div>'
 
 test = HtmlParser(teststring)
 

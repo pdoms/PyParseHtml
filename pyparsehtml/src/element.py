@@ -1,5 +1,7 @@
 from src.utils import printElement
 
+#the class attributes should be filtered for the user, not all are relevant
+
 
 class Element:
     def __init__(self, tag_set):
